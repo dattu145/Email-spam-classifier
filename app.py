@@ -1,15 +1,13 @@
-from flask import Flask,render_template,redirect,request, jsonify
-import pickle
+from flask import Flask, request, jsonify, send_from_directory
+from huggingface_hub import hf_hub_download
+import joblib
 import os
 
 app = Flask(__name__)
 
-# Load the model and vectorizer
-with open('model.pkl', 'rb') as model_file:
-    model = pickle.load(model_file)
-
-with open('vectorizer.pkl', 'rb') as vectorizer_file:
-    vectorizer = pickle.load(vectorizer_file)
+# Load the model and vectorizer using Hugging Face Hub
+model = joblib.load(hf_hub_download("dattu145/Email-spam-classifier", "model.pkl"))
+vectorizer = joblib.load(hf_hub_download("dattu145/Email-spam-classifier", "vectorizer.pkl"))
 
 @app.route('/classify', methods=['POST'])
 def classify_text():
@@ -18,7 +16,6 @@ def classify_text():
     vectorized_message = vectorizer.transform([message])
     prediction = model.predict(vectorized_message)[0]
     probability = model.predict_proba(vectorized_message)[0]
-
 
     return jsonify({
         'category': 'spam' if prediction == 1 else 'ham',
@@ -30,7 +27,7 @@ def classify_text():
 
 @app.route('/')
 def serve_html():
-    return render_template("index.html")
+    return send_from_directory(os.path.dirname(__file__), 'index.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
